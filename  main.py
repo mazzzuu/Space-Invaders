@@ -1,4 +1,4 @@
-import pygame,sys
+import pygame,sys,random
 
 def animate_player():
     player.x += player_speed
@@ -9,16 +9,12 @@ def animate_player():
     if player.left <= 0:
         player.left = 0
 
-def killing():
-    if bullet.center == enemy.center:
-        print("killato")
-
 def is_empty(sequence):
     if not sequence:
         return True
     else:
         return False
-    
+
 pygame.init()
 
 screen_widht = 1280
@@ -29,26 +25,19 @@ pygame.display.set_caption("Screen")
 
 clock = pygame.time.Clock()
 
-bullet = pygame.Rect((0,0,30,30))
-bullet.center = (screen_widht/2,5*screen_height/6)
 bullet_speed = -6
-bullet_moving = False
+bullets = []
 
 enemies = []
 
-distribuzion = 20
-for i in range(1):
-    enemy  = pygame.Rect(distribuzion,1*screen_height/6,40,40)
+
+for i in range(5):
+    enemy  = pygame.Rect(random.randint(0,screen_widht),1*screen_height/6,40,40)
     enemies.append(enemy)
-    distribuzion += 300
-
-bullets = []
-
 
 player = pygame.Rect(0,0,40,40)
 player.center = (screen_widht/2,5*screen_height/6)
 player_speed = 0
-
 
 score_font = pygame.font.Font(None, 100)
 
@@ -63,9 +52,10 @@ while True:
             if event.key == pygame.K_LEFT:
                 player_speed = -6
             if event.key == pygame.K_SPACE:
-                bullet.centerx = player.centerx
-                bullet_moving= True
-                bullets.append(bullets)
+                # CORREZIONE: usa = invece di ==
+                new_bullet = pygame.Rect(0,0,30,30)
+                new_bullet.center = (player.centerx, player.top)
+                bullets.append(new_bullet)
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_RIGHT:
@@ -77,48 +67,38 @@ while True:
 
     animate_player()
 
-
-
     screen.fill('black')
-
     pygame.draw.rect(screen,'white',player)
 
+    # CORREZIONE: gestisci il movimento e le collisioni per tutti i proiettili
+    for bullet in bullets[:]:  # Usa una copia della lista per iterare
+        bullet.y += bullet_speed
+        
+        # Rimuovi i proiettili usciti dallo schermo
+        if bullet.bottom < 0:
+            bullets.remove(bullet)
+            continue
+        
+        # Controlla collisione con i nemici
+        for enemy in enemies[:]:
+            if bullet.colliderect(enemy):
+                enemies.remove(enemy)
+                if bullet in bullets:
+                    bullets.remove(bullet)
+                break
+
+    # Disegna tutti i proiettili
+    for bullet in bullets:
+        pygame.draw.ellipse(screen, 'white', bullet)
+
+    # Disegna tutti i nemici
     for enemy in enemies:
         pygame.draw.rect(screen, 'red', enemy)
 
-    # for bullet in bullets:
-    #     pygame.draw.ellipse(screen,'white',bullet)
-
-
-    pygame.draw.ellipse(screen,'white',bullet)
-
-    pygame.draw.rect(screen,'red', enemy)
-
-    killing()
-
-    enemy_count = score_font.render("hai ucciso un nemico",True,"white")
-
-    if bullet_moving:
-        bullet.y += bullet_speed
-        # Disattiva il movimento se esce dallo schermo
-        if bullet.bottom < 0:
-            bullet_moving = False
-        for enemy in enemies:
-            if bullet.colliderect(enemy):
-                bullet_moving =False
-                enemies.remove(enemy)
-
+    # Mostra messaggio di vittoria
     if is_empty(enemies):
-        screen.blit(enemy_count,(screen_widht/4,20))
-
-
-    if bullet_moving:
-        pygame.draw.ellipse(screen,'white',bullet)
+        enemy_count = score_font.render("hai vinto", True, "white")
+        screen.blit(enemy_count, (4*screen_widht/10, 20))
 
     pygame.display.update()
     clock.tick(60)
-
-
-            
-    # screen.blit(cpu_score_surface,(screen_widht/4,20))
-    # screen.blit(player_score_surface,(3*screen_widht/4,20))
